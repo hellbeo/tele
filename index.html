@@ -3,68 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Snow Tracker | Full Version</title>
+    <title>Snow Tracker | Live Game</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --bg: #000; --card: #111; --gold: #ffcc00; --border: #333; --red: #ff4757; }
+        :root { --bg: #000; --card: #111; --gold: #ffcc00; --red: #ff4757; --border: #333; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        body { background: var(--bg); color: white; font-family: sans-serif; padding-bottom: 90px; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; padding-bottom: 90px; }
 
-        /* Ban & Notif Modals */
-        #ban-overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        #notif-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #111; width: 85%; padding: 20px; border-radius: 15px; border: 1px solid var(--gold); z-index: 1001; }
-        .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; }
+        /* BAN & SUSPEND OVERLAYS */
+        #ban-overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 25px; }
+        .ban-content { max-width: 350px; line-height: 1.6; }
+        
+        /* NOTIFICATION MODAL */
+        #notif-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #111; width: 85%; padding: 25px; border-radius: 20px; border: 1px solid var(--gold); z-index: 1001; text-align: center; }
+        .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; }
 
-        .header { background: var(--card); padding: 15px; border-bottom: 2px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 10px; }
-        .stat-box { background: #111; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; border: 1px solid #222; display: flex; align-items: center; justify-content: center; gap: 5px; }
-        .stat-box img { width: 18px; height: 18px; }
+        /* UI ELEMENTS */
+        .header { background: var(--card); padding: 15px; border-bottom: 2px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top:0; z-index:100; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; background: #080808; }
+        .stat-box { background: #111; padding: 10px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 13px; border: 1px solid #222; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .stat-box img { width: 18px; height: 18px; object-fit: contain; }
 
-        .page { display: none; padding: 20px; }
+        .page { display: none; padding: 20px; animation: fadeIn 0.3s; }
         .active-pg { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .leopard-btn { width: 220px; height: 220px; border-radius: 50%; border: 6px solid var(--gold); background: url('leopard.png') center/cover; margin: 40px auto; cursor: pointer; }
+        /* LEOPARD BUTTON */
+        .leopard-btn { width: 220px; height: 220px; border-radius: 50%; border: 6px solid var(--gold); background: url('leopard.png') center/cover; margin: 40px auto; cursor: pointer; transition: 0.1s; }
         .leopard-btn:active { transform: scale(0.95); }
 
-        /* Ticket Design */
-        .ticket-outer { width: 100%; max-width: 400px; margin: 20px auto; position: relative; }
+        /* TICKET REVEAL */
+        .ticket-outer { width: 100%; max-width: 400px; margin: 20px auto; }
         .ticket-box { width: 100%; aspect-ratio: 350 / 160; background-size: 100% 100%; position: relative; }
         .digit-grid { position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%); width: 82%; display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; }
-        .digit { font-size: 6.5vw; font-weight: 900; color: #000; }
+        .digit { font-size: 7vw; font-weight: 900; color: #000; font-family: monospace; }
 
+        /* NAVIGATION */
         .nav { position: fixed; bottom: 0; width: 100%; height: 75px; background: #111; display: flex; border-top: 1px solid #222; }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #666; font-size: 11px; cursor: pointer; }
         .nav-item.active { color: var(--gold); }
+        
+        .tg-btn { display: inline-block; margin-top: 15px; padding: 10px 20px; background: #0088cc; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="ban-overlay">
-    <h1 style="color:var(--red)">ACCOUNT SUSPENDED</h1>
-    <p id="ban-reason" style="color:#888; margin:10px;"></p>
-    <h2 id="ban-timer" style="color:var(--gold)">00:00:00</h2>
+    <div id="perma-ui" class="ban-content" style="display:none;">
+        <h1 style="color:var(--red)">ACCOUNT BANNED</h1>
+        <p style="margin:20px 0; color:#ccc;">Your account has been permanently banned due to violation of our platform rules.<br><br>This account is no longer allowed to access the system.</p>
+        <p style="font-size: 14px; color:#888;">If you believe this is a mistake, please contact support.</p>
+        <a href="https://t.me/Gaurav_069" class="tg-btn">Contact Admin</a>
+    </div>
+    <div id="suspend-ui" class="ban-content" style="display:none;">
+        <h1 style="color:orange">ACCOUNT SUSPENDED</h1>
+        <p style="margin:15px 0; color:#ccc;">Your account has been temporarily suspended due to a violation of our platform policies.</p>
+        <div style="background:#111; padding:15px; border-radius:10px; border:1px solid #333; margin:15px 0;">
+            <p style="color:#555; font-size:11px; margin-bottom:5px;">Support ID: SNOW-SECURITY-01</p>
+            <h2 id="ban-timer" style="color:var(--gold); font-family:monospace; letter-spacing:2px;">00:00:00</h2>
+        </div>
+        <p style="font-size: 14px; color:#888;">If you believe this action was taken by mistake, please contact support for further assistance.</p>
+        <a href="https://t.me/Gaurav_069" class="tg-btn">Support</a>
+    </div>
 </div>
 
 <div class="modal-bg" onclick="closeNotif()"></div>
 <div id="notif-modal">
-    <h3><i class="fa fa-bell"></i> Notifications</h3>
-    <p id="notif-text" style="margin:20px 0; color:#ccc;"></p>
-    <button onclick="closeNotif()" style="width:100%; padding:10px; background:var(--gold); border:none; border-radius:8px; font-weight:bold;">Close</button>
+    <i class="fa fa-envelope-open" style="font-size:30px; color:var(--gold)"></i>
+    <p id="notif-text" style="margin:20px 0; color:#eee;"></p>
+    <button onclick="closeNotif()" style="width:100%; padding:12px; background:var(--gold); border:none; border-radius:10px; font-weight:bold;">Close</button>
 </div>
 
 <header class="header">
-    <div><small>ID:</small> <b id="uID">--</b></div>
+    <div><small style="color:#666">ID:</small> <b id="uID">--</b></div>
     <div onclick="openNotif()" style="position:relative; cursor:pointer;">
         <i class="fa fa-bell" style="font-size:20px; color:var(--gold)"></i>
-        <span id="notif-dot" style="display:none; position:absolute; top:-5px; right:-5px; width:10px; height:10px; background:red; border-radius:50%;"></span>
+        <span id="notif-dot" style="display:none; position:absolute; top:-2px; right:-2px; width:10px; height:10px; background:red; border-radius:50%; border:2px solid #000;"></span>
     </div>
 </header>
 
 <div class="stats-grid">
-    <div class="stat-box"><img src="coin.png" alt="C"> <span id="uCoins">0</span></div>
+    <div class="stat-box"><img src="coin.png"> <span id="uCoins">0</span></div>
     <div class="stat-box">💎 <span id="uDiams">0</span></div>
     <div class="stat-box">LVL <span id="uLvl">1</span></div>
 </div>
@@ -74,24 +96,27 @@
 </div>
 
 <div id="store-pg" class="page">
-    <button onclick="buyTik()" style="width:100%; padding:15px; background:var(--gold); border:none; font-weight:bold; border-radius:10px;">BUY LUCKY BOX (100k)</button>
+    <button onclick="buyTik()" style="width:100%; padding:15px; background:var(--gold); border:none; font-weight:bold; border-radius:10px;">PURCHASE LUCKY BOX (100k)</button>
     <div id="reveal" style="display:none; margin-top:20px;">
         <div class="ticket-outer"><div id="tikImg" class="ticket-box"><div class="digit-grid" id="tikDigits"></div></div></div>
     </div>
 </div>
 
 <div id="inv-pg" class="page">
-    <h3>Your Inventory</h3>
-    <div id="inv-list" style="margin-top:15px;"></div>
+    <h3 style="margin-bottom:15px;">Your Inventory</h3>
+    <div id="inv-list"></div>
 </div>
 
-<div id="rank-pg" class="page"><div id="leaderboard"></div></div>
+<div id="rank-pg" class="page">
+    <h3 style="margin-bottom:15px;">Global Ranking</h3>
+    <div id="leaderboard" style="background:var(--card); border-radius:15px; overflow:hidden;"></div>
+</div>
 
 <nav class="nav">
-    <div class="nav-item active" onclick="go('mine',this)"><i class="fa fa-paw"></i>MINE</div>
-    <div class="nav-item" onclick="go('store',this)"><i class="fa fa-shopping-cart"></i>STORE</div>
-    <div class="nav-item" onclick="go('inv',this)"><i class="fa fa-box-open"></i>SELL</div>
-    <div class="nav-item" onclick="go('rank',this)"><i class="fa fa-trophy"></i>RANK</div>
+    <div class="nav-item active" onclick="go('mine',this)"><i class="fa fa-hand-pointer"></i>MINE</div>
+    <div class="nav-item" onclick="go('store',this)"><i class="fa fa-shopping-basket"></i>STORE</div>
+    <div class="nav-item" onclick="go('inv',this)"><i class="fa fa-wallet"></i>SELL</div>
+    <div class="nav-item" onclick="go('rank',this)"><i class="fa fa-medal"></i>RANK</div>
 </nav>
 
 <script>
@@ -107,19 +132,19 @@
     firebase.initializeApp(firebaseConfig);
     const rdb = firebase.database();
 
-    let uid = localStorage.getItem('snow_uid') || "SNW-" + Math.floor(Math.random()*900000);
+    let uid = localStorage.getItem('snow_uid') || "SNW-" + Math.floor(100000 + Math.random()*899999);
     localStorage.setItem('snow_uid', uid);
 
     let user = {};
 
     rdb.ref('users/' + uid).on('value', (s) => {
         if(!s.exists()) {
-            user = { id: uid, coins: 100000, diams: 0, lvl: 1, tickets: [], status: "active", banUntil: 0, notif: "Welcome!" };
+            user = { id: uid, coins: 100000, diams: 0, lvl: 1, xp: 0, tickets: [], status: "active", banUntil: 0, notif: "Welcome to Snow Tracker!" };
             sync();
         } else {
             user = s.val();
         }
-        checkBan();
+        checkBanState();
         updateUI();
     });
 
@@ -135,7 +160,7 @@
     function sync() { rdb.ref('users/' + uid).set(user); }
 
     function buyTik() {
-        if(user.coins < 100000) return alert("Low Coins!");
+        if(user.coins < 100000) return alert("Not enough coins!");
         user.coins -= 100000;
         let n = Array.from({length:5},()=>Math.floor(Math.random()*10)).join('');
         let counts = n.split('').reduce((a,b)=>{a[b]=(a[b]||0)+1; return a},{});
@@ -154,9 +179,9 @@
     function renderInv() {
         const list = document.getElementById('inv-list');
         list.innerHTML = (user.tickets || []).map(t => `
-            <div style="background:#111; padding:15px; margin-bottom:10px; border-radius:10px; display:flex; justify-content:space-between; border-left:4px solid var(--${t.type})">
-                <b>${t.num} (${t.type.toUpperCase()})</b>
-                <button onclick="sellItem(${t.id})" style="background:#fff; border:none; padding:5px 10px; border-radius:5px; font-weight:bold;">SELL</button>
+            <div style="background:#111; padding:15px; margin-bottom:10px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; border-left:4px solid var(--${t.type})">
+                <span><b>${t.num}</b> <small style="color:var(--${t.type})">${t.type.toUpperCase()}</small></span>
+                <button onclick="sellItem(${t.id})" style="background:#fff; border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer;">SELL</button>
             </div>`).join('');
     }
 
@@ -167,25 +192,48 @@
         user.tickets.splice(i,1); sync(); renderInv();
     }
 
-    function checkBan() {
-        if(user.status === 'banned' || (user.banUntil && Date.now() < user.banUntil)) {
-            document.getElementById('ban-overlay').style.display = 'flex';
-            if(user.banUntil > 0) {
-                setInterval(() => {
-                    let diff = user.banUntil - Date.now();
-                    if(diff <= 0) location.reload();
-                    let m = Math.floor(diff/60000); let s = Math.floor((diff%60000)/1000);
-                    document.getElementById('ban-timer').innerText = `${m}m ${s}s`;
-                }, 1000);
-            }
+    function checkBanState() {
+        const overlay = document.getElementById('ban-overlay');
+        const perma = document.getElementById('perma-ui');
+        const suspend = document.getElementById('suspend-ui');
+        const now = Date.now();
+
+        if (user.status === 'banned') {
+            overlay.style.display = 'flex'; perma.style.display = 'block'; suspend.style.display = 'none';
+        } else if (user.banUntil && now < user.banUntil) {
+            overlay.style.display = 'flex'; perma.style.display = 'none'; suspend.style.display = 'block';
+            startBanTimer(user.banUntil);
+        } else {
+            overlay.style.display = 'none';
         }
     }
 
-    function openNotif() { 
-        document.querySelector('.modal-bg').style.display='block'; 
-        document.getElementById('notif-modal').style.display='block'; 
-        document.getElementById('notif-text').innerText = user.notif || "No new messages."; 
+    function startBanTimer(time) {
+        const timerObj = document.getElementById('ban-timer');
+        const itv = setInterval(() => {
+            const diff = time - Date.now();
+            if (diff <= 0) { clearInterval(itv); location.reload(); return; }
+            const m = Math.floor(diff / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            timerObj.innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }, 1000);
     }
+
+    function loadRanks() {
+        rdb.ref('users').orderByChild('coins').limitToLast(10).on('value', snap => {
+            let html = "", arr = [];
+            snap.forEach(c => arr.push(c.val()));
+            arr.reverse().forEach((u, i) => {
+                html += `<div style="padding:15px; border-bottom:1px solid #222; display:flex; justify-content:space-between; background:${u.id===uid?'#222':'transparent'}">
+                    <span>${i+1}. ${u.id}</span>
+                    <b style="color:var(--gold)">${Math.floor(u.coins).toLocaleString()}</b>
+                </div>`;
+            });
+            document.getElementById('leaderboard').innerHTML = html;
+        });
+    }
+
+    function openNotif() { document.querySelector('.modal-bg').style.display='block'; document.getElementById('notif-modal').style.display='block'; document.getElementById('notif-text').innerText = user.notif; }
     function closeNotif() { document.querySelector('.modal-bg').style.display='none'; document.getElementById('notif-modal').style.display='none'; }
 
     function go(p, el) {
@@ -194,6 +242,7 @@
         document.getElementById(p+'-pg').classList.add('active-pg');
         el.classList.add('active');
         if(p==='inv') renderInv();
+        if(p==='rank') loadRanks();
     }
 </script>
 </body>
