@@ -84,11 +84,30 @@
 </nav>
 
 <script>
-    const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        databaseURL: "YOUR_DB_URL",
-        projectId: "YOUR_PROJECT_ID"
-    };
+    
+Use npm
+
+Use a <script> tag
+If you're already using NPM and a module bundler such as webpack or Rollup, you can run the following command to install the latest SDK (learn more):
+
+npm install firebase
+Then, initialise Firebase and begin using the SDKs for the products that you'd like to use.
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAcSHFI7Brdfb4haUhJBksMPup7oaVO3Mk",
+  authDomain: "yeseh-924ab.firebaseapp.com",
+  databaseURL: "https://yeseh-924ab-default-rtdb.firebaseio.com",
+  projectId: "yeseh-924ab",
+  storageBucket: "yeseh-924ab.firebasestorage.app",
+  messagingSenderId: "145093019232",
+  appId: "1:145093019232:web:9828d846b32470c36de505"
+};
     firebase.initializeApp(firebaseConfig);
     const rdb = firebase.database();
 
