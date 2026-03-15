@@ -1,84 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Snow Admin | Master Control</title>
+    <title>Master Admin</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
         body { background:#000; color:#fff; font-family:sans-serif; padding:20px; }
-        .user-card { background:#111; border:1px solid #333; padding:15px; margin-bottom:15px; border-radius:10px; }
+        .card { background:#111; border:1px solid #333; padding:20px; margin-bottom:15px; border-radius:12px; }
         input { width:100%; padding:10px; margin:5px 0; background:#222; color:#fff; border:1px solid #444; }
-        button { padding:10px; border:none; font-weight:bold; cursor:pointer; margin-right:5px; border-radius:5px; }
+        button { padding:10px 20px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; margin-top:10px; }
     </style>
 </head>
 <body>
+    <div id="login">
+        <input type="password" id="pass" placeholder="Admin Pass">
+        <button onclick="if(document.getElementById('pass').value==='123'){document.getElementById('login').style.display='none';document.getElementById('panel').style.display='block';load();}">Login</button>
+    </div>
+    <div id="panel" style="display:none;">
+        <h1>User Control</h1>
+        <div id="list"></div>
+    </div>
 
-<div id="login" style="max-width:300px; margin:100px auto; text-align:center;">
-    <h2>Admin Login</h2>
-    <input type="text" id="aID" placeholder="ID: 123456789">
-    <input type="password" id="aPass" placeholder="Pass: 123">
-    <button onclick="login()" style="background:green; color:white; width:100%;">LOGIN</button>
-</div>
+    <script>
+        const firebaseConfig = { /* USE SAME CONFIG */ };
+        firebase.initializeApp(firebaseConfig);
+        const rdb = firebase.database();
 
-<div id="panel" style="display:none;">
-    <h1>User Management</h1>
-    <div id="list"></div>
-</div>
-
-<script>
-    const firebaseConfig = { /* PASTE SAME CONFIG */ };
-    firebase.initializeApp(firebaseConfig);
-    const rdb = firebase.database();
-
-    function login() {
-        if(document.getElementById('aID').value === "123456789" && document.getElementById('aPass').value === "123") {
-            document.getElementById('login').style.display = "none";
-            document.getElementById('panel').style.display = "block";
-            load();
-        }
-    }
-
-    function load() {
-        rdb.ref('users').on('value', s => {
-            let html = "";
-            s.forEach(child => {
-                let u = child.val();
-                html += `<div class="user-card">
-                    <h3>ID: ${u.id}</h3>
-                    <p>Coins:</p><input type="number" id="c-${u.id}" value="${u.coins}">
-                    <p>Notification:</p><input type="text" id="n-${u.id}" value="${u.notif || ''}">
-                    <p>Suspend (Minutes):</p><input type="number" id="m-${u.id}" placeholder="Minutes">
-                    <br><br>
-                    <button onclick="save('${u.id}')" style="background:white;">Update Data</button>
-                    <button onclick="suspend('${u.id}')" style="background:orange;">Suspend</button>
-                    <button onclick="del('${u.id}')" style="background:red; color:white;">DELETE ID</button>
-                </div>`;
+        function load() {
+            rdb.ref('users').on('value', s => {
+                let html = "";
+                s.forEach(child => {
+                    let u = child.val();
+                    html += `<div class="card">
+                        <h3>ID: ${u.id}</h3>
+                        Coins: <input type="number" id="c-${u.id}" value="${u.coins}">
+                        Notif: <input type="text" id="n-${u.id}" value="${u.notif || ''}">
+                        Ban (Mins): <input type="number" id="m-${u.id}" placeholder="Minutes">
+                        <button onclick="update('${u.id}')" style="background:#fff;">Update</button>
+                        <button onclick="ban('${u.id}')" style="background:orange;">Suspend</button>
+                        <button onclick="del('${u.id}')" style="background:red; color:white;">DELETE ID</button>
+                    </div>`;
+                });
+                document.getElementById('list').innerHTML = html;
             });
-            document.getElementById('list').innerHTML = html;
-        });
-    }
-
-    function save(id) {
-        rdb.ref('users/' + id).update({
-            coins: parseFloat(document.getElementById('c-'+id).value),
-            notif: document.getElementById('n-'+id).value
-        });
-        alert("Updated!");
-    }
-
-    function suspend(id) {
-        let mins = parseInt(document.getElementById('m-'+id).value);
-        let time = Date.now() + (mins * 60 * 1000);
-        rdb.ref('users/' + id).update({ banUntil: time });
-        alert("Suspended!");
-    }
-
-    function del(id) {
-        if(confirm("Are you sure? This ID will be deleted forever!")) {
-            rdb.ref('users/' + id).remove();
-            alert("Deleted successfully.");
         }
-    }
-</script>
+
+        function update(id) {
+            rdb.ref('users/'+id).update({ coins: parseFloat(document.getElementById('c-'+id).value), notif: document.getElementById('n-'+id).value });
+            alert("Updated");
+        }
+
+        function ban(id) {
+            let t = Date.now() + (document.getElementById('m-'+id).value * 60000);
+            rdb.ref('users/'+id).update({ banUntil: t });
+        }
+
+        function del(id) {
+            if(confirm("Delete ID forever?")) rdb.ref('users/'+id).remove();
+        }
+    </script>
 </body>
 </html>
