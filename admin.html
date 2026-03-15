@@ -1,25 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Master Admin Panel</title>
+    <title>Snow Master Admin</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
         body { background:#000; color:#fff; font-family:sans-serif; padding:20px; }
         .user-card { background:#111; border:1px solid #333; padding:20px; margin-bottom:15px; border-radius:12px; }
         input { width:100%; padding:10px; margin:5px 0; background:#222; color:#fff; border:1px solid #444; border-radius:5px; }
-        button { padding:10px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; margin-right:10px; }
+        button { padding:10px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; margin:5px 5px 0 0; }
+        .btn-save { background:#fff; color:#000; }
+        .btn-susp { background:orange; color:#000; }
+        .btn-ban { background:red; color:#fff; }
+        .btn-del { background:#444; color:#fff; }
     </style>
 </head>
 <body>
     <div id="login" style="max-width:300px; margin:100px auto; text-align:center;">
-        <input type="password" id="pass" placeholder="Admin Password">
-        <button onclick="if(document.getElementById('pass').value==='123'){document.getElementById('login').style.display='none';document.getElementById('panel').style.display='block';load();}">Login</button>
+        <h2>Admin Portal</h2>
+        <input type="password" id="pass" placeholder="Password">
+        <button onclick="check()" style="width:100%; background:green; color:white;">LOGIN</button>
     </div>
 
     <div id="panel" style="display:none;">
-        <h1>User Management</h1>
-        <div id="user-list">Loading Users...</div>
+        <h1>User Control</h1>
+        <div id="user-list">Fetching users...</div>
     </div>
 
     <script>
@@ -35,23 +40,33 @@
         firebase.initializeApp(firebaseConfig);
         const rdb = firebase.database();
 
+        function check() {
+            if(document.getElementById('pass').value === '123') {
+                document.getElementById('login').style.display='none';
+                document.getElementById('panel').style.display='block';
+                load();
+            } else { alert("Wrong password!"); }
+        }
+
         function load() {
             rdb.ref('users').on('value', (snapshot) => {
                 let html = "";
-                if(!snapshot.exists()) { html = "No users found in database."; }
                 snapshot.forEach(child => {
                     let u = child.val();
                     html += `<div class="user-card">
                         <h3>ID: ${u.id}</h3>
                         Coins: <input type="number" id="c-${u.id}" value="${u.coins}">
-                        Notification: <input type="text" id="n-${u.id}" value="${u.notif || ''}">
-                        Suspend (Minutes): <input type="number" id="m-${u.id}" placeholder="Mins">
-                        <button onclick="update('${u.id}')" style="background:#fff;">Save Info</button>
-                        <button onclick="ban('${u.id}')" style="background:orange;">Suspend</button>
-                        <button onclick="del('${u.id}')" style="background:red; color:white;">DELETE ID</button>
+                        Notif: <input type="text" id="n-${u.id}" value="${u.notif || ''}">
+                        Suspend (Minutes): <input type="number" id="m-${u.id}" placeholder="Enter mins">
+                        <p style="font-size:12px; color:#666; margin-top:5px;">Status: ${u.status} | BanUntil: ${u.banUntil}</p>
+                        <button class="btn-save" onclick="update('${u.id}')">Update Data</button>
+                        <button class="btn-susp" onclick="suspend('${u.id}')">Suspend</button>
+                        <button class="btn-ban" onclick="perma('${u.id}')">Perma Ban</button>
+                        <button style="background:green; color:white;" onclick="activate('${u.id}')">Activate</button>
+                        <button class="btn-del" onclick="del('${u.id}')">Delete Account</button>
                     </div>`;
                 });
-                document.getElementById('user-list').innerHTML = html;
+                document.getElementById('user-list').innerHTML = html || "No users found.";
             });
         }
 
@@ -63,17 +78,25 @@
             alert("Updated!");
         }
 
-        function ban(id) {
+        function suspend(id) {
             let mins = document.getElementById('m-'+id).value;
+            if(!mins) return alert("Enter minutes!");
             let time = Date.now() + (mins * 60000);
-            rdb.ref('users/'+id).update({ banUntil: time });
-            alert("Suspended!");
+            rdb.ref('users/'+id).update({ status: 'active', banUntil: time });
+            alert("Suspended for " + mins + " mins");
+        }
+
+        function perma(id) {
+            if(confirm("Ban forever?")) rdb.ref('users/'+id).update({ status: 'banned', banUntil: 0 });
+        }
+
+        function activate(id) {
+            rdb.ref('users/'+id).update({ status: 'active', banUntil: 0 });
+            alert("User set to active");
         }
 
         function del(id) {
-            if(confirm("Permanently delete this user?")) {
-                rdb.ref('users/'+id).remove();
-            }
+            if(confirm("Delete this ID completely?")) rdb.ref('users/'+id).remove();
         }
     </script>
 </body>
