@@ -1,62 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Master Admin</title>
+    <title>Master Admin Panel</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
         body { background:#000; color:#fff; font-family:sans-serif; padding:20px; }
-        .card { background:#111; border:1px solid #333; padding:20px; margin-bottom:15px; border-radius:12px; }
-        input { width:100%; padding:10px; margin:5px 0; background:#222; color:#fff; border:1px solid #444; }
-        button { padding:10px 20px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; margin-top:10px; }
+        .user-card { background:#111; border:1px solid #333; padding:20px; margin-bottom:15px; border-radius:12px; }
+        input { width:100%; padding:10px; margin:5px 0; background:#222; color:#fff; border:1px solid #444; border-radius:5px; }
+        button { padding:10px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; margin-right:10px; }
     </style>
 </head>
 <body>
-    <div id="login">
-        <input type="password" id="pass" placeholder="Admin Pass">
+    <div id="login" style="max-width:300px; margin:100px auto; text-align:center;">
+        <input type="password" id="pass" placeholder="Admin Password">
         <button onclick="if(document.getElementById('pass').value==='123'){document.getElementById('login').style.display='none';document.getElementById('panel').style.display='block';load();}">Login</button>
     </div>
+
     <div id="panel" style="display:none;">
-        <h1>User Control</h1>
-        <div id="list"></div>
+        <h1>User Management</h1>
+        <div id="user-list">Loading Users...</div>
     </div>
 
     <script>
-        const firebaseConfig = { /* USE SAME CONFIG */ };
+        const firebaseConfig = {
+          apiKey: "AIzaSyDCmRMyQVP-7WcYa6hdICTOX2c3SVR4oWQ",
+          authDomain: "snow-tracker-4c87c.firebaseapp.com",
+          projectId: "snow-tracker-4c87c",
+          databaseURL: "https://snow-tracker-4c87c-default-rtdb.firebaseio.com/",
+          storageBucket: "snow-tracker-4c87c.firebasestorage.app",
+          messagingSenderId: "329295753653",
+          appId: "1:329295753653:web:dd4dc2b82e96f3bd6269fc"
+        };
         firebase.initializeApp(firebaseConfig);
         const rdb = firebase.database();
 
         function load() {
-            rdb.ref('users').on('value', s => {
+            rdb.ref('users').on('value', (snapshot) => {
                 let html = "";
-                s.forEach(child => {
+                if(!snapshot.exists()) { html = "No users found in database."; }
+                snapshot.forEach(child => {
                     let u = child.val();
-                    html += `<div class="card">
+                    html += `<div class="user-card">
                         <h3>ID: ${u.id}</h3>
                         Coins: <input type="number" id="c-${u.id}" value="${u.coins}">
-                        Notif: <input type="text" id="n-${u.id}" value="${u.notif || ''}">
-                        Ban (Mins): <input type="number" id="m-${u.id}" placeholder="Minutes">
-                        <button onclick="update('${u.id}')" style="background:#fff;">Update</button>
+                        Notification: <input type="text" id="n-${u.id}" value="${u.notif || ''}">
+                        Suspend (Minutes): <input type="number" id="m-${u.id}" placeholder="Mins">
+                        <button onclick="update('${u.id}')" style="background:#fff;">Save Info</button>
                         <button onclick="ban('${u.id}')" style="background:orange;">Suspend</button>
                         <button onclick="del('${u.id}')" style="background:red; color:white;">DELETE ID</button>
                     </div>`;
                 });
-                document.getElementById('list').innerHTML = html;
+                document.getElementById('user-list').innerHTML = html;
             });
         }
 
         function update(id) {
-            rdb.ref('users/'+id).update({ coins: parseFloat(document.getElementById('c-'+id).value), notif: document.getElementById('n-'+id).value });
-            alert("Updated");
+            rdb.ref('users/'+id).update({ 
+                coins: parseFloat(document.getElementById('c-'+id).value),
+                notif: document.getElementById('n-'+id).value 
+            });
+            alert("Updated!");
         }
 
         function ban(id) {
-            let t = Date.now() + (document.getElementById('m-'+id).value * 60000);
-            rdb.ref('users/'+id).update({ banUntil: t });
+            let mins = document.getElementById('m-'+id).value;
+            let time = Date.now() + (mins * 60000);
+            rdb.ref('users/'+id).update({ banUntil: time });
+            alert("Suspended!");
         }
 
         function del(id) {
-            if(confirm("Delete ID forever?")) rdb.ref('users/'+id).remove();
+            if(confirm("Permanently delete this user?")) {
+                rdb.ref('users/'+id).remove();
+            }
         }
     </script>
 </body>
