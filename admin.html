@@ -1,78 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Snow Admin | Secure</title>
+    <title>Snow Admin | Master Control</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
         body { background:#000; color:#fff; font-family:sans-serif; padding:20px; }
-        .box { max-width:400px; margin:50px auto; background:#111; padding:20px; border:1px solid #333; }
-        input { width:100%; padding:10px; margin:10px 0; background:#222; color:#fff; border:1px solid #444; }
-        button { width:100%; padding:10px; background:#00ff88; border:none; font-weight:bold; cursor:pointer; }
+        .box { max-width:450px; margin:20px auto; background:#111; padding:25px; border-radius:15px; border:1px solid #333; }
+        input, select { width:100%; padding:12px; margin:10px 0; background:#222; color:#fff; border:1px solid #444; border-radius:8px; }
+        button { width:100%; padding:12px; margin:5px 0; border:none; font-weight:bold; cursor:pointer; border-radius:8px; }
+        .user-card { border:1px solid #333; padding:20px; margin-bottom:20px; background:#111; border-radius:15px; }
     </style>
 </head>
 <body>
 
-<div id="loginSection">
-    <div class="box">
-        <h2>Admin Login</h2>
-        <input type="text" id="admID" placeholder="User ID">
-        <input type="password" id="admPass" placeholder="Password">
-        <button onclick="checkLogin()">LOGIN</button>
-    </div>
+<div id="login-panel" class="box">
+    <h2>Secure Login</h2>
+    <input type="text" id="a-user" placeholder="Admin ID">
+    <input type="password" id="a-pass" placeholder="Password">
+    <button onclick="doLogin()" style="background:#00ff88;">ACCESS DASHBOARD</button>
 </div>
 
-<div id="adminContent" style="display:none;">
-    <h1>User Management</h1>
-    <div id="userList"></div>
+<div id="admin-panel" style="display:none;">
+    <h1 style="color:var(--gold)">User Management</h1>
+    <div id="user-display"></div>
 </div>
 
 <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDCmRMyQVP-7WcYa6hdICTOX2c3SVR4oWQ",
-      authDomain: "snow-tracker-4c87c.firebaseapp.com",
-      projectId: "snow-tracker-4c87c",
-      databaseURL: "https://snow-tracker-4c87c-default-rtdb.firebaseio.com/", 
-      storageBucket: "snow-tracker-4c87c.firebasestorage.app",
-      messagingSenderId: "329295753653",
-      appId: "1:329295753653:web:dd4dc2b82e96f3bd6269fc"
-    };
+    const firebaseConfig = { /* USE SAME CONFIG AS INDEX.HTML */ };
     firebase.initializeApp(firebaseConfig);
-    const rdb = firebase.database();
+    const db = firebase.database();
 
-    function checkLogin() {
-        if(document.getElementById('admID').value === "123456789" && document.getElementById('admPass').value === "123") {
-            document.getElementById('loginSection').style.display = "none";
-            document.getElementById('adminContent').style.display = "block";
-            loadUsers();
-        } else { alert("Wrong!"); }
+    function doLogin() {
+        if(document.getElementById('a-user').value === "123456789" && document.getElementById('a-pass').value === "123") {
+            document.getElementById('login-panel').style.display = "none";
+            document.getElementById('admin-panel').style.display = "block";
+            fetchUsers();
+        } else { alert("Invalid Credentials!"); }
     }
 
-    function loadUsers() {
-        rdb.ref('users').on('value', (s) => {
-            const data = s.val();
+    function fetchUsers() {
+        db.ref('users').on('value', (snapshot) => {
+            const users = snapshot.val();
             let html = "";
-            for(let id in data) {
-                let u = data[id];
-                html += `<div style="border:1px solid #333; padding:15px; margin-bottom:10px;">
+            for(let id in users) {
+                let u = users[id];
+                html += `<div class="user-card">
                     <h3>ID: ${id}</h3>
-                    Coins: <input type="number" id="c-${id}" value="${u.coins}">
-                    Notif: <input type="text" id="n-${id}" value="${u.notif || ''}">
-                    Status: <input type="text" id="s-${id}" value="${u.status}">
-                    <button onclick="save('${id}')">SAVE</button>
+                    <p>Coins:</p><input type="number" id="c-${id}" value="${u.coins}">
+                    <p>Ban Reason:</p><input type="text" id="r-${id}" value="${u.banReason || ''}" placeholder="Reason for ban/suspension">
+                    <p>Suspend (Minutes):</p><input type="number" id="m-${id}" placeholder="Enter minutes">
+                    
+                    <button onclick="updateUser('${id}')" style="background:#fff;">Update Info</button>
+                    <button onclick="tempBan('${id}')" style="background:orange;">Suspend User</button>
+                    <button onclick="permaBan('${id}')" style="background:red; color:white;">Permanent Ban</button>
+                    <button onclick="liftBan('${id}')" style="background:green; color:white;">Unban / Activate</button>
                 </div>`;
             }
-            document.getElementById('userList').innerHTML = html;
+            document.getElementById('user-display').innerHTML = html;
         });
     }
 
-    function save(id) {
-        rdb.ref('users/' + id).update({
+    function updateUser(id) {
+        db.ref('users/' + id).update({
             coins: parseFloat(document.getElementById('c-'+id).value),
-            notif: document.getElementById('n-'+id).value,
-            status: document.getElementById('s-'+id).value
+            banReason: document.getElementById('r-'+id).value
         });
-        alert("Updated!");
+        alert("User data updated!");
+    }
+
+    function tempBan(id) {
+        let mins = parseInt(document.getElementById('m-'+id).value);
+        let reason = document.getElementById('r-'+id).value;
+        if(!mins) return alert("Enter minutes!");
+        let expiry = Date.now() + (mins * 60 * 1000);
+        db.ref('users/' + id).update({ banUntil: expiry, banReason: reason, status: "active" });
+        alert("Suspended for " + mins + " mins");
+    }
+
+    function permaBan(id) {
+        let reason = document.getElementById('r-'+id).value;
+        db.ref('users/' + id).update({ status: "banned", banReason: reason, banUntil: 0 });
+        alert("Banned Permanently");
+    }
+
+    function liftBan(id) {
+        db.ref('users/' + id).update({ status: "active", banUntil: 0, banReason: "" });
+        alert("Account Activated");
     }
 </script>
 </body>
