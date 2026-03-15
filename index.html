@@ -3,161 +3,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Snow Tracker | Game</title>
+    <title>Snow Tracker | Official Game</title>
+    
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
     <style>
-        :root { --bg: #000; --card: #111; --gold: #ffcc00; --green: #00ff88; --silver: #b2bec3; --border: #333; }
+        :root { --bg: #000; --card: #111; --gold: #ffcc00; --red: #ff4757; --border: #333; --green: #00ff88; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        body { background: var(--bg); color: white; font-family: sans-serif; padding-bottom: 90px; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; }
 
+        /* Ban Overlay System */
+        #ban-overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 99999; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 25px; }
+        .ban-card { background: #111; border: 2px solid var(--red); padding: 40px 20px; border-radius: 24px; box-shadow: 0 0 30px rgba(255, 71, 87, 0.15); width: 100%; max-width: 350px; }
+        .timer-display { font-size: 32px; color: var(--gold); font-weight: 900; margin: 20px 0; font-family: monospace; letter-spacing: 2px; }
+
+        /* Main UI */
         .header { background: var(--card); padding: 15px; border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 100; }
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
-        .stat-box { background: #000; padding: 10px; border-radius: 12px; border: 1px solid var(--border); text-align: center; font-weight: bold; font-size: 13px; }
+        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+        .stat-item { background: #000; padding: 10px; border-radius: 12px; border: 1px solid var(--border); text-align: center; font-size: 13px; font-weight: bold; }
 
-        .page { display: none; padding: 20px; animation: fadeIn 0.3s; }
-        .active-pg { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .page { display: none; padding: 20px; animation: slideUp 0.3s ease-out; }
+        .active-page { display: block; }
+        @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        /* TICKET BOX SYSTEM */
-        .ticket-outer { width: 100%; max-width: 400px; margin: 20px auto; position: relative; }
-        .ticket-fix-box { 
-            width: 100%; aspect-ratio: 350 / 160; 
-            background-size: 100% 100%; background-repeat: no-repeat; position: relative; border-radius: 10px; 
-        }
-        .digit-grid {
-            position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%);
-            width: 82%; display: grid; grid-template-columns: repeat(5, 1fr); text-align: center;
-        }
-        .digit { font-size: 6.5vw; font-weight: 900; color: #000; font-family: monospace; }
-        @media(min-width: 450px) { .digit { font-size: 28px; } }
+        /* Game Elements */
+        .leopard-button { width: 230px; height: 230px; border-radius: 50%; border: 8px solid var(--gold); background: url('coin.png') center/cover; margin: 50px auto; cursor: pointer; transition: transform 0.1s; box-shadow: 0 0 40px rgba(255,204,0,0.1); }
+        .leopard-button:active { transform: scale(0.94); }
 
-        .leopard-btn { width: 220px; height: 220px; border-radius: 50%; border: 6px solid var(--gold); background: url('coin.png') center/cover; margin: 40px auto; cursor: pointer; }
-        .nav { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--card); display: flex; border-top: 1px solid var(--border); }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #666; font-size: 11px; cursor: pointer; }
-        .nav-item.active { color: var(--gold); }
-        .nav-item i { font-size: 20px; margin-bottom: 4px; }
+        /* Ticket Box Fix */
+        .ticket-box { width: 100%; aspect-ratio: 350 / 160; background-size: 100% 100%; position: relative; margin: 20px 0; }
+        .digit-container { position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%); width: 82%; display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; }
+        .digit-text { font-size: 6.5vw; font-weight: 900; color: #000; }
+        @media(min-width: 480px) { .digit-text { font-size: 30px; } }
+
+        /* Navigation */
+        .nav-bar { position: fixed; bottom: 0; width: 100%; height: 80px; background: var(--card); display: flex; border-top: 1px solid var(--border); }
+        .nav-link { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #777; font-size: 11px; text-decoration: none; cursor: pointer; }
+        .nav-link.active { color: var(--gold); }
+        .nav-link i { font-size: 22px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
-<header class="header">
-    <div style="display:flex; justify-content:space-between; font-size:11px;">
-        <span>UID: <b id="uID">--</b></span>
-        <span>RANK: <b style="color:var(--gold)">LIVE</b></span>
-    </div>
-    <div class="stats-grid">
-        <div class="stat-box">🪙 <span id="uCoins">0</span></div>
-        <div class="stat-box">💎 <span id="uDiams">0</span></div>
-        <div class="stat-box">LVL <span id="uLvl">1</span></div>
-    </div>
-</header>
-
-<div id="mine-pg" class="page active-pg">
-    <div id="uNotif" style="background:var(--gold); color:black; padding:10px; border-radius:10px; display:none; text-align:center; margin-bottom:10px; font-weight:bold;"></div>
-    <div class="leopard-btn" onclick="mine()"></div>
-</div>
-
-<div id="store-pg" class="page">
-    <button onclick="buyTik()" style="width:100%; padding:15px; background:var(--gold); border:none; font-weight:bold; border-radius:10px;">BUY TICKET (100k)</button>
-    <div id="reveal" style="display:none; margin-top:20px;">
-        <div class="ticket-outer"><div id="tikImg" class="ticket-fix-box"><div class="digit-grid" id="tikDigits"></div></div></div>
+<div id="ban-overlay">
+    <div class="ban-card">
+        <i class="fa fa-shield-virus" style="font-size: 60px; color: var(--red);"></i>
+        <h2 style="margin-top: 15px;">Access Restricted</h2>
+        <p id="ban-msg" style="color: #aaa; margin-top: 10px; font-size: 14px;"></p>
+        <div class="timer-display" id="ban-timer">00:00:00</div>
+        <p style="color: #555; font-size: 11px;">The app will unlock automatically once the timer expires.</p>
     </div>
 </div>
 
-<div id="rank-pg" class="page"><div id="leaderboard"><h3>Global Ranking</h3></div></div>
-<div id="sell-pg" class="page"><div id="inv-list"></div></div>
+<div id="game-container">
+    <header class="header">
+        <div style="display:flex; justify-content:space-between; font-size:11px; opacity: 0.8;">
+            <span>USER ID: <b id="u-id">--</b></span>
+            <span>STATUS: <b style="color:var(--green)">ONLINE</b></span>
+        </div>
+        <div class="stats-row">
+            <div class="stat-item">🪙 <span id="u-coins">0</span></div>
+            <div class="stat-item">💎 <span id="u-diams">0</span></div>
+            <div class="stat-item">LVL <span id="u-lvl">1</span></div>
+        </div>
+    </header>
 
-<nav class="nav">
-    <div class="nav-item active" onclick="go('mine',this)"><i class="fa fa-paw"></i>MINE</div>
-    <div class="nav-item" onclick="go('store',this)"><i class="fa fa-ticket-alt"></i>STORE</div>
-    <div class="nav-item" onclick="go('rank',this)"><i class="fa fa-trophy"></i>RANK</div>
-    <div class="nav-item" onclick="go('sell',this)"><i class="fa fa-box"></i>SELL</div>
-</nav>
+    <div id="mine-page" class="page active-page">
+        <div id="global-notif" style="display:none; background:var(--gold); color:#000; padding:12px; border-radius:12px; text-align:center; font-weight:bold; margin-bottom:15px;"></div>
+        <div class="leopard-button" onclick="handleMine()"></div>
+    </div>
+
+    <div id="store-page" class="page">
+        <div style="text-align:center; padding:20px; background:var(--card); border-radius:20px; border:1px solid var(--border);">
+            <i class="fa fa-gem" style="font-size:40px; color:var(--gold)"></i>
+            <h3>Premium Lucky Box</h3>
+            <p style="color:#666; font-size:14px; margin:5px 0 15px;">100,000 Coins / Draw</p>
+            <button onclick="buyTicket()" style="width:100%; padding:15px; background:var(--gold); color:#000; border:none; border-radius:12px; font-weight:900; cursor:pointer;">PURCHASE</button>
+        </div>
+        <div id="ticket-reveal" style="display:none; margin-top:20px;">
+            <div class="ticket-box" id="t-img">
+                <div class="digit-container" id="t-digits"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="rank-page" class="page">
+        <h3 style="margin-bottom:15px;">Global Leaderboard</h3>
+        <div id="leaderboard-list"></div>
+    </div>
+
+    <div id="inv-page" class="page">
+        <h3 style="margin-bottom:15px;">Your Inventory</h3>
+        <div id="inventory-list"></div>
+    </div>
+
+    <nav class="nav-bar">
+        <div class="nav-link active" onclick="switchPage('mine', this)"><i class="fa fa-hand-pointer"></i>MINE</div>
+        <div class="nav-link" onclick="switchPage('store', this)"><i class="fa fa-shopping-basket"></i>STORE</div>
+        <div class="nav-link" onclick="switchPage('rank', this)"><i class="fa fa-trophy"></i>RANK</div>
+        <div class="nav-link" onclick="switchPage('inv', this)"><i class="fa fa-box-open"></i>ITEMS</div>
+    </nav>
+</div>
 
 <script>
+    // Paste your Firebase Config here
     const firebaseConfig = {
       apiKey: "AIzaSyDCmRMyQVP-7WcYa6hdICTOX2c3SVR4oWQ",
       authDomain: "snow-tracker-4c87c.firebaseapp.com",
       projectId: "snow-tracker-4c87c",
-      databaseURL: "https://snow-tracker-4c87c-default-rtdb.firebaseio.com/", // Add your DB URL here
+      databaseURL: "https://snow-tracker-4c87c-default-rtdb.firebaseio.com/",
       storageBucket: "snow-tracker-4c87c.firebasestorage.app",
       messagingSenderId: "329295753653",
       appId: "1:329295753653:web:dd4dc2b82e96f3bd6269fc"
     };
     firebase.initializeApp(firebaseConfig);
-    const rdb = firebase.database();
+    const database = firebase.database();
 
-    let uid = localStorage.getItem('snow_uid') || "SNW-" + Math.floor(Math.random()*90000);
-    localStorage.setItem('snow_uid', uid);
+    let userId = localStorage.getItem('snow_user_v2') || "USER-" + Math.floor(10000 + Math.random()*90000);
+    localStorage.setItem('snow_user_v2', userId);
 
-    let user = {};
-    rdb.ref('users/' + uid).on('value', (s) => {
-        user = s.val() || { id: uid, coins: 100000, diams: 0, lvl: 1, xp: 0, tickets: [], status: "active", notif: "" };
-        if(user.status === 'banned') document.body.innerHTML = "<h1>BANNED</h1>";
-        updateUI();
+    let userData = {};
+    let timerInterval;
+
+    // Listen for Realtime Updates
+    database.ref('users/' + userId).on('value', (snapshot) => {
+        userData = snapshot.val() || {
+            id: userId, coins: 100000, diams: 0, lvl: 1, xp: 0, tickets: [], status: "active", banUntil: 0, banReason: "", notif: ""
+        };
+        handleBanProtection();
+        updateDisplay();
     });
 
-    function updateUI() {
-        document.getElementById('uID').innerText = user.id;
-        document.getElementById('uCoins').innerText = Math.floor(user.coins).toLocaleString();
-        document.getElementById('uDiams').innerText = user.diams;
-        document.getElementById('uLvl').innerText = user.lvl;
-        const n = document.getElementById('uNotif');
-        if(user.notif) { n.innerText = user.notif; n.style.display='block'; } else { n.style.display='none'; }
+    function handleBanProtection() {
+        const now = Date.now();
+        const overlay = document.getElementById('ban-overlay');
+        const content = document.getElementById('game-container');
+
+        if (userData.status === 'banned' || (userData.banUntil && now < userData.banUntil)) {
+            overlay.style.display = 'flex';
+            content.style.display = 'none';
+            document.getElementById('ban-msg').innerText = userData.banReason || "Terms of Service Violation.";
+            
+            if (userData.status === 'banned') {
+                document.getElementById('ban-timer').innerText = "PERMANENT";
+            } else {
+                runTimer(userData.banUntil);
+            }
+        } else {
+            overlay.style.display = 'none';
+            content.style.display = 'block';
+            clearInterval(timerInterval);
+        }
     }
 
-    function mine() { user.coins += 10; user.xp += 5; if(user.xp>=100){ user.lvl++; user.xp=0; confetti(); } sync(); }
-    function sync() { rdb.ref('users/' + uid).set(user); }
-
-    function buyTik() {
-        if(user.coins < 100000) return alert("Low Coins!");
-        user.coins -= 100000;
-        let n = Array.from({length:5},()=>Math.floor(Math.random()*10)).join('');
-        let counts = n.split('').reduce((a,b)=>{a[b]=(a[b]||0)+1; return a},{});
-        let maxS = Math.max(...Object.values(counts));
-        let type = maxS===5?"gold":(maxS>=3?"green":"silver");
-        user.tickets = user.tickets || [];
-        user.tickets.unshift({id:Date.now(), num:n, type:type});
-        document.getElementById('reveal').style.display='block';
-        document.getElementById('tikImg').style.backgroundImage = `url('${type}.png')`;
-        document.getElementById('tikDigits').innerHTML = n.split('').map(d => `<div class="digit">${d}</div>`).join('');
-        sync();
+    function runTimer(targetTime) {
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            const now = Date.now();
+            const distance = targetTime - now;
+            if (distance <= 0) {
+                clearInterval(timerInterval);
+                location.reload();
+                return;
+            }
+            const h = Math.floor(distance / 3600000);
+            const m = Math.floor((distance % 3600000) / 60000);
+            const s = Math.floor((distance % 60000) / 1000);
+            document.getElementById('ban-timer').innerText = 
+                `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }, 1000);
     }
 
-    function go(p, el) {
-        document.querySelectorAll('.page').forEach(x=>x.classList.remove('active-pg'));
-        document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
-        document.getElementById(p+'-pg').classList.add('active-pg');
-        el.classList.add('active');
-        if(p==='sell') renderInv();
-        if(p==='rank') renderRank();
+    function updateDisplay() {
+        document.getElementById('u-id').innerText = userData.id;
+        document.getElementById('u-coins').innerText = Math.floor(userData.coins).toLocaleString();
+        document.getElementById('u-diams').innerText = userData.diams;
+        document.getElementById('u-lvl').innerText = userData.lvl;
+        const n = document.getElementById('global-notif');
+        if(userData.notif) { n.innerText = userData.notif; n.style.display='block'; } else { n.style.display='none'; }
     }
 
-    function renderInv() {
-        const list = document.getElementById('inv-list');
-        list.innerHTML = (user.tickets || []).map(t => `<div style="background:#111; padding:15px; margin:10px; border-radius:10px; display:flex; justify-content:space-between; border-left:4px solid var(--${t.type})">
-            <b>${t.num}</b> <button onclick="sell(${t.id})" style="background:#fff; border:none; padding:5px 10px; border-radius:5px;">SELL</button>
-        </div>`).join('');
+    function handleMine() { 
+        userData.coins += 10; 
+        userData.xp += 5; 
+        if(userData.xp >= 100) { userData.lvl++; userData.xp = 0; confetti(); }
+        syncData(); 
     }
 
-    function sell(id) {
-        let i = user.tickets.findIndex(x=>x.id===id);
-        let t = user.tickets[i];
-        if(t.type==='gold') user.diams+=100; else if(t.type==='green') user.diams+=20; else user.coins+=10000;
-        user.tickets.splice(i,1); sync(); renderInv();
+    function syncData() { database.ref('users/' + userId).set(userData); }
+
+    function buyTicket() {
+        if(userData.coins < 100000) return alert("Insufficient Balance!");
+        userData.coins -= 100000;
+        let num = Array.from({length:5},()=>Math.floor(Math.random()*10)).join('');
+        let counts = num.split('').reduce((a,b)=>{a[b]=(a[b]||0)+1; return a},{});
+        let maxSame = Math.max(...Object.values(counts));
+        let type = maxSame===5 ? "gold" : (maxSame>=3 ? "green" : "silver");
+        
+        userData.tickets = userData.tickets || [];
+        userData.tickets.unshift({id: Date.now(), num: num, type: type});
+        
+        document.getElementById('ticket-reveal').style.display='block';
+        document.getElementById('t-img').style.backgroundImage = `url('${type}.png')`;
+        document.getElementById('t-digits').innerHTML = num.split('').map(d => `<div class="digit-text">${d}</div>`).join('');
+        if(type === 'gold') confetti();
+        syncData();
     }
 
-    function renderRank() {
-        rdb.ref('users').orderByChild('coins').limitToLast(10).once('value', (s) => {
-            let html = "<h3>Global Top 10</h3>";
-            s.forEach(child => {
+    function switchPage(pageId, element) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.getElementById(pageId + '-page').classList.add('active-page');
+        element.classList.add('active');
+        if(pageId === 'inv') renderInventory();
+        if(pageId === 'rank') renderLeaderboard();
+    }
+
+    function renderInventory() {
+        const list = document.getElementById('inventory-list');
+        list.innerHTML = (userData.tickets || []).map(t => `
+            <div style="background:var(--card); padding:15px; margin-bottom:10px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; border-left:4px solid var(--${t.type})">
+                <span><b>${t.num}</b> <small style="color:var(--${t.type})">(${t.type})</small></span>
+                <button onclick="sellItem(${t.id})" style="background:#fff; color:#000; border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer;">SELL</button>
+            </div>
+        `).join('');
+    }
+
+    function sellItem(tid) {
+        let idx = userData.tickets.findIndex(x => x.id === tid);
+        let item = userData.tickets[idx];
+        if(item.type === 'gold') userData.diams += 100;
+        else if(item.type === 'green') userData.diams += 20;
+        else userData.coins += 15000;
+        userData.tickets.splice(idx, 1);
+        syncData();
+        renderInventory();
+    }
+
+    function renderLeaderboard() {
+        database.ref('users').orderByChild('coins').limitToLast(10).once('value', (snap) => {
+            let html = "";
+            snap.forEach(child => {
                 let u = child.val();
-                html += `<div style="padding:10px; background:#111; margin-bottom:5px; border-radius:10px; display:flex; justify-content:space-between;"><span>${u.id}</span> <b>${Math.floor(u.coins).toLocaleString()}</b></div>`;
+                html = `<div style="background:var(--card); padding:15px; margin-bottom:8px; border-radius:12px; display:flex; justify-content:space-between; border:1px solid var(--border);">
+                    <span>${u.id}</span><b>${Math.floor(u.coins).toLocaleString()}</b>
+                </div>` + html;
             });
-            document.getElementById('leaderboard').innerHTML = html;
+            document.getElementById('leaderboard-list').innerHTML = html;
         });
     }
 </script>
