@@ -102,12 +102,12 @@ import { initializeApp } from "firebase/app";
 const firebaseConfig = {
   apiKey: "AIzaSyDCmRMyQVP-7WcYa6hdICTOX2c3SVR4oWQ",
   authDomain: "snow-tracker-4c87c.firebaseapp.com",
+  databaseURL: "https://snow-tracker-4c87c-default-rtdb.firebaseio.com",
   projectId: "snow-tracker-4c87c",
-  storageBucket: "snow-tracker-4c87c.firebasestorage.app",
+  storageBucket: "snow-tracker-4c87c.appspot.com",
   messagingSenderId: "329295753653",
   appId: "1:329295753653:web:dd4dc2b82e96f3bd6269fc"
-};
-    firebase.initializeApp(firebaseConfig);
+};    firebase.initializeApp(firebaseConfig);
     const rdb = firebase.database();
 
     let uid = localStorage.getItem('snow_uid') || "SNW-" + Math.floor(10000+Math.random()*90000);
