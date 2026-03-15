@@ -11,7 +11,7 @@
     <style>
         :root { --bg: #000; --card: #111; --gold: #ffcc00; --green: #00ff88; --silver: #b2bec3; --border: #333; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        body { background: var(--bg); color: white; font-family: sans-serif; padding-bottom: 90px; overflow-x: hidden; }
+        body { background: var(--bg); color: white; font-family: sans-serif; padding-bottom: 90px; }
 
         .header { background: var(--card); padding: 15px; border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 100; }
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
@@ -21,7 +21,7 @@
         .active-pg { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* FIXED TICKET SCALING */
+        /* TICKET BOX SYSTEM */
         .ticket-outer { width: 100%; max-width: 400px; margin: 20px auto; position: relative; }
         .ticket-fix-box { 
             width: 100%; aspect-ratio: 350 / 160; 
@@ -34,9 +34,7 @@
         .digit { font-size: 6.5vw; font-weight: 900; color: #000; font-family: monospace; }
         @media(min-width: 450px) { .digit { font-size: 28px; } }
 
-        .leopard-btn { width: 220px; height: 220px; border-radius: 50%; border: 6px solid var(--gold); background: url('leopard.png') center/cover; margin: 40px auto; cursor: pointer; transition: 0.1s; }
-        .leopard-btn:active { transform: scale(0.92); }
-
+        .leopard-btn { width: 220px; height: 220px; border-radius: 50%; border: 6px solid var(--gold); background: url('leopard.png') center/cover; margin: 40px auto; cursor: pointer; }
         .nav { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--card); display: flex; border-top: 1px solid var(--border); }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #666; font-size: 11px; cursor: pointer; }
         .nav-item.active { color: var(--gold); }
@@ -47,34 +45,30 @@
 
 <header class="header">
     <div style="display:flex; justify-content:space-between; font-size:11px;">
-        <span>ID: <b id="uID">--</b></span>
+        <span>UID: <b id="uID">--</b></span>
         <span>RANK: <b style="color:var(--gold)">LIVE</b></span>
     </div>
     <div class="stats-grid">
         <div class="stat-box">🪙 <span id="uCoins">0</span></div>
-        <div class="stat-box" style="color:#00d4ff">💎 <span id="uDiams">0</span></div>
+        <div class="stat-box">💎 <span id="uDiams">0</span></div>
         <div class="stat-box">LVL <span id="uLvl">1</span></div>
     </div>
 </header>
 
 <div id="mine-pg" class="page active-pg">
-    <div id="uNotif" style="background:var(--gold); color:black; padding:12px; border-radius:10px; display:none; text-align:center; font-weight:bold;"></div>
+    <div id="uNotif" style="background:var(--gold); color:black; padding:10px; border-radius:10px; display:none; text-align:center; margin-bottom:10px; font-weight:bold;"></div>
     <div class="leopard-btn" onclick="mine()"></div>
 </div>
 
 <div id="store-pg" class="page">
-    <button onclick="buyTik()" style="width:100%; padding:15px; background:var(--gold); border:none; font-weight:bold; border-radius:10px;">BUY TICKET (100,000)</button>
+    <button onclick="buyTik()" style="width:100%; padding:15px; background:var(--gold); border:none; font-weight:bold; border-radius:10px;">BUY TICKET (100k)</button>
     <div id="reveal" style="display:none; margin-top:20px;">
         <div class="ticket-outer"><div id="tikImg" class="ticket-fix-box"><div class="digit-grid" id="tikDigits"></div></div></div>
     </div>
 </div>
 
 <div id="rank-pg" class="page"><div id="leaderboard"><h3>Global Ranking</h3></div></div>
-
-<div id="sell-pg" class="page">
-    <h3>Inventory</h3>
-    <div id="inv-list"></div>
-</div>
+<div id="sell-pg" class="page"><div id="inv-list"></div></div>
 
 <nav class="nav">
     <div class="nav-item active" onclick="go('mine',this)"><i class="fa fa-paw"></i>MINE</div>
@@ -84,39 +78,25 @@
 </nav>
 
 <script>
-    
-Use npm
-
-Use a <script> tag
-If you're already using NPM and a module bundler such as webpack or Rollup, you can run the following command to install the latest SDK (learn more):
-
-npm install firebase
-Then, initialise Firebase and begin using the SDKs for the products that you'd like to use.
-
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDCmRMyQVP-7WcYa6hdICTOX2c3SVR4oWQ",
-  authDomain: "snow-tracker-4c87c.firebaseapp.com",
-  databaseURL: "https://snow-tracker-4c87c-default-rtdb.firebaseio.com",
-  projectId: "snow-tracker-4c87c",
-  storageBucket: "snow-tracker-4c87c.appspot.com",
-  messagingSenderId: "329295753653",
-  appId: "1:329295753653:web:dd4dc2b82e96f3bd6269fc"
-};    firebase.initializeApp(firebaseConfig);
+    const firebaseConfig = {
+      apiKey: "AIzaSyDCmRMyQVP-7WcYa6hdICTOX2c3SVR4oWQ",
+      authDomain: "snow-tracker-4c87c.firebaseapp.com",
+      projectId: "snow-tracker-4c87c",
+      databaseURL: "https://snow-tracker-4c87c-default-rtdb.firebaseio.com/", // Add your DB URL here
+      storageBucket: "snow-tracker-4c87c.firebasestorage.app",
+      messagingSenderId: "329295753653",
+      appId: "1:329295753653:web:dd4dc2b82e96f3bd6269fc"
+    };
+    firebase.initializeApp(firebaseConfig);
     const rdb = firebase.database();
 
-    let uid = localStorage.getItem('snow_uid') || "SNW-" + Math.floor(10000+Math.random()*90000);
+    let uid = localStorage.getItem('snow_uid') || "SNW-" + Math.floor(Math.random()*90000);
     localStorage.setItem('snow_uid', uid);
 
     let user = {};
     rdb.ref('users/' + uid).on('value', (s) => {
         user = s.val() || { id: uid, coins: 100000, diams: 0, lvl: 1, xp: 0, tickets: [], status: "active", notif: "" };
-        if(user.status === 'banned') document.body.innerHTML = "<h1 style='color:red; text-align:center; padding-top:100px;'>YOU ARE BANNED</h1>";
+        if(user.status === 'banned') document.body.innerHTML = "<h1>BANNED</h1>";
         updateUI();
     });
 
@@ -144,7 +124,6 @@ const firebaseConfig = {
         document.getElementById('reveal').style.display='block';
         document.getElementById('tikImg').style.backgroundImage = `url('${type}.png')`;
         document.getElementById('tikDigits').innerHTML = n.split('').map(d => `<div class="digit">${d}</div>`).join('');
-        if(type==='gold') confetti();
         sync();
     }
 
@@ -159,8 +138,8 @@ const firebaseConfig = {
 
     function renderInv() {
         const list = document.getElementById('inv-list');
-        list.innerHTML = (user.tickets || []).map(t => `<div style="background:#111; padding:15px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:space-between; border-left:4px solid var(--${t.type})">
-            <b>${t.num} <small>(${t.type})</small></b> <button onclick="sell(${t.id})" style="padding:5px 10px; border-radius:5px; border:none; font-weight:bold; cursor:pointer">SELL</button>
+        list.innerHTML = (user.tickets || []).map(t => `<div style="background:#111; padding:15px; margin:10px; border-radius:10px; display:flex; justify-content:space-between; border-left:4px solid var(--${t.type})">
+            <b>${t.num}</b> <button onclick="sell(${t.id})" style="background:#fff; border:none; padding:5px 10px; border-radius:5px;">SELL</button>
         </div>`).join('');
     }
 
@@ -176,7 +155,7 @@ const firebaseConfig = {
             let html = "<h3>Global Top 10</h3>";
             s.forEach(child => {
                 let u = child.val();
-                html += `<div style="padding:15px; background:#111; margin-bottom:5px; border-radius:10px; display:flex; justify-content:space-between;"><span>${u.id}</span> <b>${Math.floor(u.coins).toLocaleString()}</b></div>`;
+                html += `<div style="padding:10px; background:#111; margin-bottom:5px; border-radius:10px; display:flex; justify-content:space-between;"><span>${u.id}</span> <b>${Math.floor(u.coins).toLocaleString()}</b></div>`;
             });
             document.getElementById('leaderboard').innerHTML = html;
         });
@@ -184,4 +163,3 @@ const firebaseConfig = {
 </script>
 </body>
 </html>
-
