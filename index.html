@@ -11,7 +11,7 @@
     <style>
         :root { --bg: #000; --card: #111; --gold: #ffcc00; --red: #ff4757; --border: #333; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; padding-bottom: 90px; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; padding-bottom: 90px; overflow-x: hidden; }
 
         /* OVERLAYS */
         #ban-overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 25px; }
@@ -24,48 +24,50 @@
         .stat-box { background: #111; padding: 10px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 13px; border: 1px solid #222; display: flex; align-items: center; justify-content: center; gap: 6px; }
         .stat-box img { width: 18px; height: 18px; }
 
-        .page { display: none; padding: 20px; }
+        .page { display: none; padding: 20px; animation: fadeIn 0.3s; }
         .active-pg { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* MINE BUTTON */
-        .leopard-btn { width: 220px; height: 220px; border-radius: 50%; border: 6px solid var(--gold); background: url('coin.png') center/cover; margin: 40px auto; cursor: pointer; }
-        .leopard-btn:active { transform: scale(0.95); }
+        /* MINE BUTTON & ANIMATION */
+        .mine-container { position: relative; width: 100%; display: flex; justify-content: center; align-items: center; overflow: visible; }
+        .leopard-btn { 
+            width: 220px; height: 220px; border-radius: 50%; 
+            border: 6px solid var(--gold); background: url('coin.png') center/cover; 
+            margin: 40px auto; cursor: pointer; position: relative; z-index: 5;
+            box-shadow: 0 0 30px rgba(255, 204, 0, 0.2);
+        }
+        .leopard-btn:active { transform: scale(0.92); }
+
+        .plus-one {
+            position: fixed;
+            color: var(--gold);
+            font-weight: 900;
+            font-size: 24px;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 9999;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+        }
 
         /* FIXED TICKET BOX SYSTEM */
         .lucky-box-container {
-            width: 100%;
-            max-width: 360px;
-            margin: 20px auto;
-            background: #1a1a1a;
-            border: 2px solid #333;
-            border-radius: 15px;
-            padding: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            width: 100%; max-width: 360px; margin: 20px auto;
+            background: #1a1a1a; border: 2px solid #333; border-radius: 15px; padding: 10px;
         }
         .ticket-visual {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 1264 / 574; /* Matching your golden ticket size */
-            background-size: cover;
-            background-position: center;
-            border-radius: 8px;
+            position: relative; width: 100%; aspect-ratio: 1264 / 574;
+            background-size: cover; background-position: center; border-radius: 8px;
         }
         .digit-grid {
-            position: absolute;
-            top: 52%; /* Centered in the white boxes */
-            left: 50.5%;
-            transform: translate(-50%, -50%);
-            width: 82%;
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            position: absolute; top: 52%; left: 50.5%; transform: translate(-50%, -50%);
+            width: 82%; display: grid; grid-template-columns: repeat(5, 1fr);
         }
-        .digit { 
-            font-size: 7.5vw; 
-            font-weight: 900; 
-            color: #000; 
-            font-family: 'Courier New', monospace; 
-            text-align: center;
-        }
+        .digit { font-size: 7.5vw; font-weight: 900; color: #000; font-family: 'Courier New', monospace; text-align: center; }
 
         /* RANKING TABLE */
         .rank-row { display: flex; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid #222; }
@@ -73,7 +75,7 @@
 
         /* NAV */
         .nav { position: fixed; bottom: 0; width: 100%; height: 75px; background: #111; display: flex; border-top: 1px solid #222; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #666; font-size: 11px; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #666; font-size: 11px; cursor: pointer; }
         .nav-item.active { color: var(--gold); }
         .tg-btn { display: inline-block; margin-top: 15px; padding: 10px 20px; background: #0088cc; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
     </style>
@@ -111,7 +113,9 @@
 </div>
 
 <div id="mine-pg" class="page active-pg">
-    <div class="leopard-btn" onclick="mine()"></div>
+    <div class="mine-container">
+        <div class="leopard-btn" id="coinBtn"></div>
+    </div>
 </div>
 
 <div id="store-pg" class="page">
@@ -181,7 +185,27 @@
     }
 
     function sync() { rdb.ref('users/' + uid).set(user); }
-    function mine() { user.coins += 1; sync(); }
+
+    // CLICK ANIMATION & MINE LOGIC
+    document.getElementById('coinBtn').addEventListener('click', function(e) {
+        // Coin calculation
+        user.coins += 1; 
+        sync();
+
+        // Animation logic
+        const plusOne = document.createElement('div');
+        plusOne.innerText = '+1';
+        plusOne.classList.add('plus-one');
+        
+        // Positioning it exactly where you clicked
+        plusOne.style.left = e.clientX + 'px';
+        plusOne.style.top = e.clientY + 'px';
+        
+        document.body.appendChild(plusOne);
+
+        // Remove element after animation ends
+        setTimeout(() => { plusOne.remove(); }, 800);
+    });
 
     function buyTik() {
         if(user.coins < 100000) return alert("Not enough coins!");
@@ -221,7 +245,7 @@
         rdb.ref('users').orderByChild('coins').on('value', snap => {
             let arr = [];
             snap.forEach(c => { arr.push(c.val()); });
-            arr.reverse(); // Highest first
+            arr.reverse(); 
             
             let top49 = arr.slice(0, 49);
             let html = "";
@@ -233,7 +257,6 @@
             });
             document.getElementById('leaderboard').innerHTML = html;
 
-            // Find current user rank
             let myIndex = arr.findIndex(x => x.id === uid);
             if (myIndex >= 49) {
                 document.getElementById('my-special-rank').innerHTML = `
