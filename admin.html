@@ -10,6 +10,7 @@
         /* Global Control Styling */
         .global-card { background:#1a1a1a; border:2px solid #ffcc00; padding:20px; margin-bottom:30px; border-radius:15px; }
         .danger-zone { border-color: #ff4757; background: #1a0a0a; }
+        .maint-zone { border-color: #00a2ff; background: #0a161a; } /* New Maintenance Style */
         
         /* User Card Styling */
         .user-card { background:#111; border:1px solid #333; padding:20px; margin-bottom:15px; border-radius:12px; }
@@ -24,6 +25,7 @@
         .btn-del { background:#444; color:#fff; }
         .btn-global { background:#ffcc00; color:#000; width: 100%; margin-top: 10px; font-size: 16px; }
         .btn-reset { background:#ff4757; color:#fff; width: 100%; margin-top: 10px; }
+        .btn-maint { background:#00a2ff; color:#fff; width: 100%; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -35,6 +37,14 @@
 
     <div id="panel" style="display:none;">
         <h1>Control Center</h1>
+
+        <div class="global-card maint-zone">
+            <h3 style="color:#00a2ff;">🛠️ Maintenance Break</h3>
+            <p style="font-size: 12px; color: #aaa;">Game kitne der ke liye band karna hai (Minutes mein likhen).</p>
+            <input type="number" id="maint-mins" placeholder="Enter minutes (e.g. 60)">
+            <button class="btn-maint" onclick="setMaintenance()">START MAINTENANCE</button>
+            <button style="background:#444; color:#fff; width:100%; margin-top:5px;" onclick="stopMaintenance()">STOP MAINTENANCE NOW</button>
+        </div>
 
         <div class="global-card">
             <h3>📢 Universal Notification</h3>
@@ -74,6 +84,25 @@
                 document.getElementById('panel').style.display='block';
                 load();
             } else { alert("Wrong password!"); }
+        }
+
+        // --- MAINTENANCE FUNCTIONS ---
+        function setMaintenance() {
+            let mins = document.getElementById('maint-mins').value;
+            if(!mins) return alert("Pehle minutes toh likho!");
+            
+            let endTime = Date.now() + (mins * 60000);
+            rdb.ref('settings/maintenance').set({
+                until: endTime
+            }).then(() => {
+                alert("Maintenance set for " + mins + " minutes!");
+            });
+        }
+
+        function stopMaintenance() {
+            rdb.ref('settings/maintenance').set({ until: 0 }).then(() => {
+                alert("Maintenance Stopped!");
+            });
         }
 
         // UNIVERSAL NOTIFICATION (SEND TO ALL)
