@@ -163,7 +163,7 @@
 
     rdb.ref('users/' + uid).on('value', (s) => {
         if(!s.exists()) {
-            user = { id: uid, coins: 100000, diams: 0, lvl: 1, tickets: [], status: "active", banUntil: 0, notif: "Welcome!" };
+            user = { id: uid, coins: 0, diams: 0, lvl: 1, tickets: [], status: "active", banUntil: 0, notif: "Welcome!" };
             sync();
         } else {
             user = s.val();
@@ -181,7 +181,7 @@
     }
 
     function sync() { rdb.ref('users/' + uid).set(user); }
-    function mine() { user.coins += 10; sync(); }
+    function mine() { user.coins += 1; sync(); }
 
     function buyTik() {
         if(user.coins < 100000) return alert("Not enough coins!");
