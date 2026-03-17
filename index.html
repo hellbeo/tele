@@ -13,30 +13,34 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; padding-bottom: 90px; overflow-x: hidden; }
 
-        /* --- NEW MODERN OVERLAYS --- */
+        /* --- IMAGE STYLE PREMIUM OVERLAYS --- */
         .status-overlay {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98);
+            display: none; position: fixed; inset: 0; background: #0b1421; /* Dark Blue-ish bg like image */
             z-index: 20000; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
         }
         .status-box {
-            background: #111; border: 1px solid var(--border); width: 100%; max-width: 400px;
-            border-radius: 20px; padding: 25px; text-align: left; box-shadow: 0 10px 40px rgba(0,0,0,1);
+            background: #152233; width: 90%; max-width: 350px;
+            border-radius: 24px; padding: 40px 20px; text-align: center; 
+            position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
-        .status-header { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
-        .status-msg { color: #aaa; font-size: 14px; line-height: 1.6; margin-bottom: 25px; }
-        
-        /* Horizontal Box System */
-        .status-footer {
-            display: flex; justify-content: space-between; align-items: center;
-            background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px solid #222;
-        }
-        .label-text { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
-        .timer-display { font-family: monospace; font-weight: bold; color: var(--gold); font-size: 18px; }
-        .help-btn { color: var(--blue); text-decoration: none; font-weight: bold; font-size: 14px; }
+        /* Gradient Glow effect from images */
+        .glow-red { box-shadow: 0 0 40px rgba(255, 71, 87, 0.2); border: 1px solid rgba(255, 71, 87, 0.3); }
+        .glow-orange { box-shadow: 0 0 40px rgba(255, 165, 0, 0.2); border: 1px solid rgba(255, 165, 0, 0.3); }
+        .glow-blue { box-shadow: 0 0 40px rgba(0, 162, 255, 0.2); border: 1px solid rgba(0, 162, 255, 0.3); }
 
-        .border-red { border-top: 5px solid var(--red); }
-        .border-orange { border-top: 5px solid orange; }
-        .border-blue { border-top: 5px solid var(--blue); }
+        .status-header { font-size: 24px; font-weight: 800; margin: 15px 0 10px; }
+        .status-msg { color: #cbd5e0; font-size: 15px; line-height: 1.5; margin-bottom: 25px; }
+        
+        .icon-circle {
+            width: 70px; height: 70px; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 40px;
+        }
+
+        .status-footer-ui {
+            display: flex; justify-content: space-between; align-items: center;
+            width: 100%; margin-top: 10px; padding: 0 10px;
+        }
+        .timer-ui { font-weight: bold; font-size: 18px; }
+        .help-link { color: #718096; text-decoration: none; font-size: 16px; }
 
         /* PREVIOUS CSS (UNCHANGED) */
         #notif-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #111; width: 85%; padding: 25px; border-radius: 20px; border: 1px solid var(--gold); z-index: 1001; text-align: center; }
@@ -67,40 +71,37 @@
 <body>
 
 <div id="maint-overlay" class="status-overlay">
-    <div class="status-box border-blue">
-        <div class="status-header" style="color:var(--blue)">Maintenance Break</div>
-        <p class="status-msg">Maintenance break is active. Come back soon for a better experience.</p>
-        <div class="status-footer">
-            <div>
-                <div class="label-text">End In</div>
-                <div class="timer-display" id="maint-timer">00 : 00 : 00</div>
-            </div>
-            <span style="color:var(--blue); font-weight:bold;">🛠 Active</span>
+    <div class="status-box glow-blue">
+        <div class="icon-circle">🛠️</div>
+        <div class="status-header">Maintenance Break</div>
+        <p class="status-msg">We are updating the system<br>Please come back shortly</p>
+        <div class="status-footer-ui">
+            <div class="timer-ui" id="maint-timer" style="color:var(--blue)">00:59:59</div>
+            <a href="#" class="help-link">Help</a>
         </div>
     </div>
 </div>
 
 <div id="suspend-overlay" class="status-overlay">
-    <div class="status-box border-orange">
+    <div class="status-box glow-orange">
+        <div class="icon-circle" style="color:orange"><i class="fa fa-ban"></i></div>
         <div class="status-header" style="color:orange">Account Suspended</div>
-        <p class="status-msg">Your account has been suspended due to violence of our policy.</p>
-        <div class="status-footer">
-            <div>
-                <div class="label-text">Active In</div>
-                <div class="timer-display" id="sus-timer">00 : 00 : 00</div>
-            </div>
-            <a href="https://t.me/Gaurav_069" class="help-btn">Help</a>
+        <p class="status-msg">Your account has been suspended<br>due to suspicious activity</p>
+        <div class="status-footer-ui">
+            <div class="timer-ui" id="sus-timer" style="color:orange">00:59:58</div>
+            <a href="https://t.me/Gaurav_069" class="help-link">Help</a>
         </div>
     </div>
 </div>
 
 <div id="ban-overlay-new" class="status-overlay">
-    <div class="status-box border-red">
-        <div class="status-header" style="color:var(--red)">Account Banned 🚫</div>
-        <p class="status-msg">Your account has been banned for permanent due to violence of our policy.</p>
-        <div class="status-footer">
-            <span class="label-text" style="color:var(--red)">Permanent Ban</span>
-            <a href="https://t.me/Gaurav_069" class="help-btn">Help</a>
+    <div class="status-box glow-red">
+        <div class="icon-circle" style="color:var(--red)"><i class="fa fa-minus-circle"></i></div>
+        <div class="status-header" style="color:var(--red)">Account Banned</div>
+        <p class="status-msg">Your account has been permanently banned.<br>This action cannot be reversed.</p>
+        <div class="status-footer-ui">
+            <div style="color:var(--red); font-weight:bold;">Permanent Ban</div>
+            <a href="https://t.me/Gaurav_069" class="help-link">Help</a>
         </div>
     </div>
 </div>
@@ -186,7 +187,6 @@
         updateUI();
     });
 
-    // MAINTENANCE CHECK LOGIC
     rdb.ref('settings/maintenance').on('value', (s) => {
         const d = s.val();
         const overlay = document.getElementById('maint-overlay');
@@ -274,7 +274,6 @@
         });
     }
 
-    // HH:MM:SS Timer Function
     function startMasterTimer(targetTime, elementId) {
         function update() {
             const diff = targetTime - Date.now();
@@ -283,7 +282,7 @@
             const m = Math.floor((diff % 3600000) / 60000);
             const s = Math.floor((diff % 60000) / 1000);
             document.getElementById(elementId).innerText = 
-                `${h.toString().padStart(2,'0')} : ${m.toString().padStart(2,'0')} : ${s.toString().padStart(2,'0')}`;
+                `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
         }
         update();
         setInterval(update, 1000);
@@ -293,10 +292,8 @@
         const now = Date.now();
         const banOverlay = document.getElementById('ban-overlay-new');
         const suspOverlay = document.getElementById('suspend-overlay');
-        
         banOverlay.style.display = 'none';
         suspOverlay.style.display = 'none';
-
         if(user.status === 'banned') {
             banOverlay.style.display = 'flex';
         } else if(user.banUntil && now < user.banUntil) {
