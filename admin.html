@@ -10,7 +10,7 @@
         /* Global Control Styling */
         .global-card { background:#1a1a1a; border:2px solid #ffcc00; padding:20px; margin-bottom:30px; border-radius:15px; }
         .danger-zone { border-color: #ff4757; background: #1a0a0a; }
-        .maint-zone { border-color: #00a2ff; background: #0a161a; } /* New Maintenance Style */
+        .maint-zone { border-color: #00a2ff; background: #0a161a; }
         
         /* User Card Styling */
         .user-card { background:#111; border:1px solid #333; padding:20px; margin-bottom:15px; border-radius:12px; }
@@ -19,6 +19,14 @@
         button { padding:10px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; margin:5px 5px 0 0; transition: 0.2s; }
         button:active { transform: scale(0.95); }
         
+        /* Tick Buttons Styling */
+        .btn-tick { padding: 8px 12px; font-size: 11px; border: 1px solid #444; }
+        .tick-on { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        .gold-on { background: #ffcc00 !important; color: #000 !important; }
+        .silver-on { background: #00a2ff !important; color: #fff !important; }
+        .black-on { background: #444 !important; color: #fff !important; border: 1px solid #fff; }
+        .tick-off { background: #222; color: #666; }
+
         .btn-save { background:#fff; color:#000; }
         .btn-susp { background:orange; color:#000; }
         .btn-ban { background:red; color:#fff; }
@@ -90,45 +98,31 @@
         function setMaintenance() {
             let mins = document.getElementById('maint-mins').value;
             if(!mins) return alert("Pehle minutes toh likho!");
-            
             let endTime = Date.now() + (mins * 60000);
-            rdb.ref('settings/maintenance').set({
-                until: endTime
-            }).then(() => {
-                alert("Maintenance set for " + mins + " minutes!");
-            });
+            rdb.ref('settings/maintenance').set({ until: endTime }).then(() => { alert("Maintenance set!"); });
         }
 
         function stopMaintenance() {
-            rdb.ref('settings/maintenance').set({ until: 0 }).then(() => {
-                alert("Maintenance Stopped!");
-            });
+            rdb.ref('settings/maintenance').set({ until: 0 }).then(() => { alert("Maintenance Stopped!"); });
         }
 
-        // UNIVERSAL NOTIFICATION (SEND TO ALL)
         function sendUniversal() {
             let msg = document.getElementById('univ-msg').value;
-            if(!msg) return alert("Kuch message toh likho!");
-            
-            if(confirm("Kya aap sabhi users ko ye message bhejna chahte hain?")) {
+            if(!msg) return alert("Message likho!");
+            if(confirm("Sabko bhejein?")) {
                 rdb.ref('users').once('value', (snap) => {
-                    snap.forEach(user => {
-                        rdb.ref('users/' + user.key).update({ notif: msg });
-                    });
-                    alert("Broadcast Sent Successfully!");
+                    snap.forEach(user => { rdb.ref('users/' + user.key).update({ notif: msg }); });
+                    alert("Broadcast Sent!");
                     document.getElementById('univ-msg').value = "";
                 });
             }
         }
 
-        // UNIVERSAL COIN RESET
         function resetAllCoins() {
-            if(confirm("DANGER! Kya aap sach mein SABHI users ke coins reset karke 0 karna chahte hain?")) {
+            if(confirm("SAB RESET?")) {
                 rdb.ref('users').once('value', (snap) => {
-                    snap.forEach(user => {
-                        rdb.ref('users/' + user.key).update({ coins: 0 });
-                    });
-                    alert("All User Coins Reset to 0!");
+                    snap.forEach(user => { rdb.ref('users/' + user.key).update({ coins: 0 }); });
+                    alert("Reset Complete!");
                 });
             }
         }
@@ -138,11 +132,23 @@
                 let html = "";
                 snapshot.forEach(child => {
                     let u = child.val();
+                    // Tick status checking for button colors
+                    let gCls = u.gold ? 'gold-on' : 'tick-off';
+                    let sCls = u.silver ? 'silver-on' : 'tick-off';
+                    let bCls = u.black ? 'black-on' : 'tick-off';
+
                     html += `<div class="user-card">
-                        <div style="display:flex; justify-content:space-between;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
                             <h3>ID: ${u.id}</h3>
                             <span style="color:cyan;">💎 Diams: ${u.diams || 0}</span>
                         </div>
+                        
+                        <div style="margin: 10px 0;">
+                            <button class="btn-tick ${gCls}" onclick="toggleTick('${u.id}','gold',${u.gold})">GOLD TICK</button>
+                            <button class="btn-tick ${sCls}" onclick="toggleTick('${u.id}','silver',${u.silver})">SILVER TICK</button>
+                            <button class="btn-tick ${bCls}" onclick="toggleTick('${u.id}','black',${u.black})">BLACK TICK</button>
+                        </div>
+
                         Coins: <input type="number" id="c-${u.id}" value="${u.coins}">
                         Notif: <input type="text" id="n-${u.id}" value="${u.notif || ''}">
                         Suspend (Minutes): <input type="number" id="m-${u.id}" placeholder="Enter mins">
@@ -163,6 +169,11 @@
             });
         }
 
+        // --- NEW: Toggle Tick Function ---
+        function toggleTick(uid, type, currentVal) {
+            rdb.ref('users/' + uid).update({ [type]: !currentVal });
+        }
+
         function update(id) {
             rdb.ref('users/'+id).update({ 
                 coins: parseFloat(document.getElementById('c-'+id).value),
@@ -176,7 +187,7 @@
             if(!mins) return alert("Enter minutes!");
             let time = Date.now() + (mins * 60000);
             rdb.ref('users/'+id).update({ status: 'active', banUntil: time });
-            alert("Suspended for " + mins + " mins");
+            alert("Suspended!");
         }
 
         function perma(id) {
@@ -185,11 +196,11 @@
 
         function activate(id) {
             rdb.ref('users/'+id).update({ status: 'active', banUntil: 0 });
-            alert("User set to active");
+            alert("User active");
         }
 
         function del(id) {
-            if(confirm("Delete this ID completely?")) rdb.ref('users/'+id).remove();
+            if(confirm("Delete ID?")) rdb.ref('users/'+id).remove();
         }
     </script>
 </body>
