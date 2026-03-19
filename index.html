@@ -13,9 +13,16 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; padding-bottom: 90px; overflow-x: hidden; }
 
+        /* --- NEW TICK STYLE --- */
+        .tick-img { 
+            width: 18px; height: 18px; vertical-align: middle; 
+            margin-left: 4px; border-radius: 50%; object-fit: contain;
+            mix-blend-mode: screen; 
+        }
+
         /* --- IMAGE STYLE PREMIUM OVERLAYS --- */
         .status-overlay {
-            display: none; position: fixed; inset: 0; background: #0b1421; /* Dark Blue-ish bg like image */
+            display: none; position: fixed; inset: 0; background: #0b1421;
             z-index: 20000; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
         }
         .status-box {
@@ -23,22 +30,14 @@
             border-radius: 24px; padding: 40px 20px; text-align: center; 
             position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
-        /* Gradient Glow effect from images */
         .glow-red { box-shadow: 0 0 40px rgba(255, 71, 87, 0.2); border: 1px solid rgba(255, 71, 87, 0.3); }
         .glow-orange { box-shadow: 0 0 40px rgba(255, 165, 0, 0.2); border: 1px solid rgba(255, 165, 0, 0.3); }
         .glow-blue { box-shadow: 0 0 40px rgba(0, 162, 255, 0.2); border: 1px solid rgba(0, 162, 255, 0.3); }
 
         .status-header { font-size: 24px; font-weight: 800; margin: 15px 0 10px; }
         .status-msg { color: #cbd5e0; font-size: 15px; line-height: 1.5; margin-bottom: 25px; }
-        
-        .icon-circle {
-            width: 70px; height: 70px; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 40px;
-        }
-
-        .status-footer-ui {
-            display: flex; justify-content: space-between; align-items: center;
-            width: 100%; margin-top: 10px; padding: 0 10px;
-        }
+        .icon-circle { width: 70px; height: 70px; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+        .status-footer-ui { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; padding: 0 10px; }
         .timer-ui { font-weight: bold; font-size: 18px; }
         .help-link { color: #718096; text-decoration: none; font-size: 16px; }
 
@@ -61,7 +60,7 @@
         .ticket-visual { position: relative; width: 100%; aspect-ratio: 1264 / 574; background-size: cover; background-position: center; border-radius: 8px; }
         .digit-grid { position: absolute; top: 52%; left: 50.5%; transform: translate(-50%, -50%); width: 82%; display: grid; grid-template-columns: repeat(5, 1fr); }
         .digit { font-size: 7.5vw; font-weight: 900; color: #000; font-family: 'Courier New', monospace; text-align: center; }
-        .rank-row { display: flex; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid #222; }
+        .rank-row { display: flex; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid #222; align-items: center; }
         .rank-my-pos { background: var(--gold); color: #000; font-weight: bold; border-radius: 10px; margin-top: 15px; }
         .nav { position: fixed; bottom: 0; width: 100%; height: 75px; background: #111; display: flex; border-top: 1px solid #222; }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #666; font-size: 11px; cursor: pointer; }
@@ -130,6 +129,13 @@
 </div>
 
 <div id="store-pg" class="page">
+    <div style="background: #1a1a1a; padding: 15px; border-radius: 15px; border: 1px solid #333; margin-bottom: 20px; text-align: center;">
+        <h3 style="color: var(--blue); font-size: 16px;">🥈 PREMIUM SILVER TICK</h3>
+        <p style="color: #888; font-size: 11px; margin-bottom: 10px;">Validity: 7 Days</p>
+        <button onclick="buySilverTick()" style="width: 100%; padding: 12px; background: var(--blue); border: none; color: white; border-radius: 10px; font-weight: bold;">BUY FOR 💎 100</button>
+        <p id="tick-timer-info" style="font-size: 11px; margin-top: 5px; color: var(--gold);"></p>
+    </div>
+
     <button onclick="buyTik()" style="width:100%; padding:15px; background:var(--gold); border:none; font-weight:bold; border-radius:10px;">PURCHASE LUCKY BOX (100k)</button>
     <div id="reveal" style="display:none; margin-top:20px;">
         <div class="lucky-box-container">
@@ -178,12 +184,13 @@
 
     rdb.ref('users/' + uid).on('value', (s) => {
         if(!s.exists()) {
-            user = { id: uid, coins: 0, diams: 0, lvl: 1, tickets: [], status: "active", banUntil: 0, notif: "Welcome!" };
+            user = { id: uid, coins: 0, diams: 0, lvl: 1, tickets: [], status: "active", banUntil: 0, notif: "Welcome!", gold: false, silver: false, black: false, silverExpiry: 0 };
             sync();
         } else {
             user = s.val();
         }
         checkBanState();
+        checkTickExpiry(); // Checking if silver tick expired
         updateUI();
     });
 
@@ -193,17 +200,45 @@
         if(d && d.until > Date.now()) {
             overlay.style.display = 'flex';
             startMasterTimer(d.until, 'maint-timer');
-        } else {
-            overlay.style.display = 'none';
-        }
+        } else { overlay.style.display = 'none'; }
     });
 
     function updateUI() {
-        document.getElementById('uID').innerText = user.id;
+        // --- TICK DISPLAY LOGIC ---
+        let tickHTML = "";
+        if(user.gold) tickHTML += `<img src="goldentik.png" class="tick-img">`;
+        if(user.silver) tickHTML += `<img src="silvertik.png" class="tick-img">`;
+        if(user.black) tickHTML += `<img src="blacktik.png" class="tick-img">`;
+
+        document.getElementById('uID').innerHTML = user.id + tickHTML;
         document.getElementById('uCoins').innerText = Math.floor(user.coins).toLocaleString();
         document.getElementById('uDiams').innerText = user.diams;
         document.getElementById('uLvl').innerText = user.lvl;
         document.getElementById('notif-dot').style.display = (user.notif && user.notif !== "") ? "block" : "none";
+
+        if(user.silver && user.silverExpiry > Date.now()) {
+            let daysLeft = Math.ceil((user.silverExpiry - Date.now()) / (1000 * 60 * 60 * 24));
+            document.getElementById('tick-timer-info').innerText = `Active: ${daysLeft} days remaining`;
+        } else { document.getElementById('tick-timer-info').innerText = ""; }
+    }
+
+    // --- SILVER TICK PURCHASE FUNCTION ---
+    function buySilverTick() {
+        if(user.diams < 100) return alert("Not enough Diamonds!");
+        if(user.silver) return alert("Silver Tick is already active!");
+        let expiryTime = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 Days in ms
+        rdb.ref('users/' + uid).update({
+            diams: user.diams - 100,
+            silver: true,
+            silverExpiry: expiryTime
+        });
+        alert("Silver Tick activated for 7 days!");
+    }
+
+    function checkTickExpiry() {
+        if(user.silver && user.silverExpiry > 0 && Date.now() > user.silverExpiry) {
+            rdb.ref('users/' + uid).update({ silver: false, silverExpiry: 0 });
+        }
     }
 
     function sync() { rdb.ref('users/' + uid).set(user); }
@@ -252,13 +287,18 @@
     }
 
     function loadRanks() {
-        rdb.ref('users').orderByChild('coins').on('value', snap => {
+        rdb.ref('users').orderByChild('coins').limitToLast(100).on('value', snap => {
             let arr = []; snap.forEach(c => { arr.push(c.val()); }); arr.reverse(); 
             let top49 = arr.slice(0, 49);
             let html = "";
             top49.forEach((u, i) => {
+                let rankTicks = "";
+                if(u.gold) rankTicks += `<img src="goldentik.png" class="tick-img" style="width:14px;height:14px;">`;
+                if(u.silver) rankTicks += `<img src="silvertik.png" class="tick-img" style="width:14px;height:14px;">`;
+                if(u.black) rankTicks += `<img src="blacktik.png" class="tick-img" style="width:14px;height:14px;">`;
+                
                 html += `<div class="rank-row" style="${u.id===uid?'background:#222':''}">
-                    <span>${i+1}. ${u.id}</span>
+                    <span>${i+1}. ${u.id}${rankTicks}</span>
                     <b style="color:var(--gold)">${Math.floor(u.coins).toLocaleString()}</b>
                 </div>`;
             });
@@ -315,4 +355,4 @@
     }
 </script>
 </body>
-    </html>
+        </html>
